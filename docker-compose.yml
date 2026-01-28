@@ -1,0 +1,45 @@
+services:
+  redis:
+    image: cr.yandex/mirror/redis:7-alpine
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  bot:
+    build: .
+    command: python -m bot.main
+    env_file: .env
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - /tmp/downloads:/tmp/downloads
+      - /tmp/logs:/tmp/logs
+    restart: unless-stopped
+
+  celery_worker:
+    build: .
+    command: celery -A tasks.celery_app worker --loglevel=info --concurrency=2
+    env_file: .env
+    depends_on:
+      - redis
+    volumes:
+      - /tmp/downloads:/tmp/downloads
+      - /tmp/logs:/tmp/logs
+    restart: unless-stopped
+
+  celery_beat:
+    build: .
+    command: celery -A tasks.celery_app beat --loglevel=info
+    env_file: .env
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+volumes:
+  redis_data:
