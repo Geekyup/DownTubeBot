@@ -1,5 +1,5 @@
 aiogram==3.7.0
-yt-dlp==2024.1.0
+yt-dlp
 celery[redis]==5.3.6
 redis==5.0.1
 pydantic==2.5.3
